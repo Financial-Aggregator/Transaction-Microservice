@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: event-store-db
+    environment:
+      POSTGRES_DB: event-store
+      POSTGRES_USER: transaction
+      POSTGRES_PASSWORD: transaction
+    ports:
+      - "8432:5432"
+    volumes:
+      - event-store-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transaction -d event-store"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: transaction-service
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/event-store
+      SPRING_DATASOURCE_USERNAME: transaction
+      SPRING_DATASOURCE_PASSWORD: transaction
+    ports:
+      - "5050:5050"
+
+volumes:
+  event-store-db-data:
